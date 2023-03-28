@@ -9,13 +9,14 @@ import time
 start_time = time.time()
 
 # Set up the OpenAI API client
-apiKey = "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"
+apiKey = "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"
 
 # Info needed
 name = "Joohn Doe"
 period = "6"
 relateTo = "Minecraft"
 chapterNumber = "12"
+synonyms = False
 
 #sgDoc = urlToDoc("https://sites.google.com/a/clovisusd.k12.ca.us/nitschke-s-cnec-website/calendar/CH%20" + chapterNumber + "%20SG%20AP%20GOV20.docx")
 sgURL = GetDocumentLink(chapterNumber).getFileLink()
@@ -24,18 +25,19 @@ sgInfo = Parser(sgURL).parse()
 
 try:
 	formatedResponse = json.load(open("formatedResponse" + chapterNumber + ".json"))
-	print(formatedResponse["synonymAnswers"])
+	if synonyms:
+		print(formatedResponse["synonymAnswers"])
 except KeyError:
 	formatedResponse = json.load(open("formatedResponse" + chapterNumber + ".json"))
-	formatedResponse = Generator(sgInfo, relateTo, apiKey, formatedResponse).synonymsInit()
+	formatedResponse = Generator(chapterNumber, sgInfo, relateTo, apiKey, formatedResponse).synonymsInit()
 	with open("formatedResponse" + chapterNumber + ".json", "w") as file:
 		json.dump(formatedResponse, file)
 except FileNotFoundError:
-	formatedResponse = Generator(sgInfo, relateTo, apiKey).formatResponse()
+	formatedResponse = Generator(chapterNumber, sgInfo, relateTo, apiKey, synonyms=synonyms).formatResponse()
 	with open("formatedResponse" + chapterNumber + ".json", "w") as file:
 		json.dump(formatedResponse, file)
 
-finalDoc, questionlessDocument = GenerateDocx(sgInfo, chapterNumber, formatedResponse, questionless=True, name=name, period=period).generateAIdocx()
+finalDoc, questionlessDocument = GenerateDocx(sgInfo, chapterNumber, formatedResponse, questionless=True, name=name, period=period, synonyms=synonyms).generateAIdocx()
 
 finalDoc.save("AP GOV Study Guide Chapter " + chapterNumber + ".docx")
 if questionlessDocument:

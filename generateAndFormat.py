@@ -5,10 +5,17 @@ import random
 import time
 from text_rewrite import TextRewrite
 import language_tool_python
+import pickle
 
 class Generator:
 	def fixGrammar(self, sentence):
 		return self.languageTool.correct(sentence)
+
+	def checkDict(self, my_dict, search_string, version):
+		for question in my_dict:
+			if question[version] == search_string:
+				return True
+		return False
 
 	# Take in a paragraph and rewrite sentences at 0-1 chance
 	def randomSentences(self, paragraph, chance=1):
@@ -26,12 +33,14 @@ class Generator:
 
 		return self.formatedResponse
 
-	def __init__(self, sgInfo, relateTo, apiKey, formatedResponse=None):
+	def __init__(self, chapterNumber, sgInfo, relateTo, apiKey, formatedResponse=None, synonyms=True):
 		self.sgInfo = sgInfo
 		self.relateTo = relateTo
 		self.apiKey = apiKey
 		self.formatedResponse = formatedResponse
 		self.languageTool = language_tool_python.LanguageTool('en-US')
+		self.chapterNumber = chapterNumber
+		self.synonyms = synonyms
 
 	# Generate AI Response for questions
 	def generateResponse(self, question):
@@ -78,27 +87,36 @@ class Generator:
 		# Set up the OpenAI API client
 		openai.api_key = self.apiKey
 
-		self.formatedResponse = {"questions": [], "terms": [], "synonymAnswers": []}
+		try:
+			tempPickle = open('Chapter' + self.chapterNumber + '.pkl', 'rb+')
+			self.formatedResponse = pickle.load(tempPickle)
+		except (FileNotFoundError, EOFError):
+			self.formatedResponse = {"questions": [], "terms": [], "synonymAnswers": []}
+
+		tempPickle = open('Chapter' + self.chapterNumber + '.pkl', 'wb+')
 		for question in tqdm(self.sgInfo["questions"], desc='Questions', total=len(self.sgInfo["questions"])):
+			if self.checkDict(self.formatedResponse["questions"], question, "question"):
+				continue
 			while(True):
 				try:
 					response, related = self.generateResponse(question)
 					break
-				except openai.error.ServiceUnavailableError:
-					time.sleep(10)
-				except openai.error.RateLimitError:
+				except (openai.error.ServiceUnavailableError, openai.error.RateLimitError):
 					time.sleep(10)
 			self.formatedResponse["questions"].append({"question": question, "response": response, "related": related})
+			pickle.dump(self.formatedResponse, tempPickle)
 		for term in tqdm(self.sgInfo["keyTerms"], desc='Terms', total=len(self.sgInfo["keyTerms"])):
+			if self.checkDict(self.formatedResponse["terms"], question, "term"):
+				continue
 			while(True):
 				try:
 					response = self.generateTermResponse(term)
 					break
-				except openai.error.ServiceUnavailableError:
-					time.sleep(10)
-				except openai.error.RateLimitError:
+				except (openai.error.ServiceUnavailableError, openai.error.RateLimitError):
 					time.sleep(10)
 			self.formatedResponse["terms"].append({"term": term, "response": response})
+			pickle.dump(self.formatedResponse, tempPickle)
 		
-		self.synonymsInit()
+		if self.synonyms:
+			self.synonymsInit()
 		return self.formatedResponse

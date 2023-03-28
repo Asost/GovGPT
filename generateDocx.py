@@ -11,7 +11,7 @@ class GenerateDocx:
 			text = text[:term_index] + "_" * term_len + text[term_index + term_len:]
 		return text
 
-	def __init__(self, sgInfo, chapterNumber, formatedResponse, questionless=True, name="John Doe", date=date.today().strftime('%B %d, %Y'), period="6"):
+	def __init__(self, sgInfo, chapterNumber, formatedResponse, questionless=True, name="John Doe", date=date.today().strftime('%B %d, %Y'), period="6", synonyms=True):
 		self.sgInfo = sgInfo
 		self.chapterNumber = chapterNumber
 		self.formatedResponse = formatedResponse
@@ -19,6 +19,7 @@ class GenerateDocx:
 		self.name = name
 		self.date = date
 		self.period = period
+		self.synonyms = synonyms
 
 	def generateQuestionless(self):
 		# Create final document
@@ -33,8 +34,12 @@ class GenerateDocx:
 		#questionList = []
 		for i, answer in enumerate(self.formatedResponse["questions"]):
 			question = self.sgInfo["questions"][i]
-			response = self.formatedResponse["synonymAnswers"][i]["response"]
-			related = self.formatedResponse["synonymAnswers"][i]["related"]
+			if self.synonyms:
+				response = self.formatedResponse["synonymAnswers"][i]["response"]
+				related = self.formatedResponse["synonymAnswers"][i]["related"]
+			else:
+				response = self.formatedResponse["questions"][i]["response"]
+				related = self.formatedResponse["questions"][i]["related"]
 			# strip together answer and add to document
 			finalResponse = finalDoc.add_paragraph("", style='List Number')
 			finalResponse.add_run('\n\t' + response.lstrip('\n') + ' ')
@@ -84,8 +89,12 @@ class GenerateDocx:
 		#questionList = []
 		for i, answer in enumerate(self.formatedResponse["questions"]):
 			question = self.sgInfo["questions"][i]
-			response = self.formatedResponse["synonymAnswers"][i]["response"]
-			related = self.formatedResponse["synonymAnswers"][i]["related"]
+			if self.synonyms:
+				response = self.formatedResponse["synonymAnswers"][i]["response"]
+				related = self.formatedResponse["synonymAnswers"][i]["related"]
+			else:
+				response = self.formatedResponse["questions"][i]["response"]
+				related = self.formatedResponse["questions"][i]["related"]
 			# strip together answer and add to document
 			finalResponse = finalDoc.add_paragraph(question, style='List Number')
 			finalResponse.add_run('\n\t' + response.lstrip('\n') + ' ')
